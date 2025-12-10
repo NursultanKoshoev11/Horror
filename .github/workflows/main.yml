@@ -28,25 +28,6 @@ jobs:
         Write-Host Searching UE...
 
         $v = $env:UE_VERSION
-        $paths = @(
-          'C:\Program Files\Epic Games\UE_' + $v,
-          'D:\Program Files\Epic Games\UE_' + $v,
-          'F:\Program Files\Epic Games\UE_' + $v
-        )
-
-        $found = $null
-        foreach ($p in $paths) {
-          if (Test-Path $p) { $found = $p; break }
-        }
-
-        if ($found -eq $null) {
-          Write-Host UE NOT FOUND
-          exit 1
-        }
-
-        Write-Host UE found at $found
-
-        Add-Content -Path $env:GITHUB_OUTPUT -Value ('UE_PATH=' + $found)
 
     - name: Validate project
       shell: powershell
@@ -63,12 +44,12 @@ jobs:
     - name: Generate Project Files
       shell: cmd
       run: |
-        "%UE_PATH%\Engine\Build\BatchFiles\GenerateProjectFiles.bat" -project="%CD%\%PROJECT_NAME%.uproject" -game
+        "F:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\GenerateProjectFiles.bat" -project="%CD%\%PROJECT_NAME%.uproject" -game
 
     - name: Build Shipping
       shell: cmd
       run: |
-        "%UE_PATH%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
+        "F:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
           -project="%CD%\%PROJECT_NAME%.uproject" ^
           -noP4 ^
           -build ^
