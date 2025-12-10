@@ -99,11 +99,6 @@ echo   - Все необходимые ресурсы
 echo   - Файл README.txt
 echo.
 
-REM Предлагаем открыть папку
-set /p "OPEN=Открыть папку с пакетом? (Y/N): "
-if /i "%OPEN%"=="Y" (
-    start "" "%FINAL_OUTPUT%"
-)
-
 echo.
+
 pause
