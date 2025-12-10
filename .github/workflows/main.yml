@@ -8,7 +8,7 @@ on:
 
 env:
   UE_VERSION: "5.5"
-  PROJECT_NAME: "YourProjectName"
+  PROJECT_NAME: "PolygonHorrorMansion"
   PROJECT_FILE: "${{ env.PROJECT_NAME }}.uproject"
 
 jobs:
