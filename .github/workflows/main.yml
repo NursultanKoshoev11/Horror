@@ -22,24 +22,46 @@ jobs:
         lfs: true
     
     - name: Setup Unreal Engine
-      shell: pwsh  # ← ИСПРАВЛЕНО: используем PowerShell вместо bash
+      shell: powershell  # ← ИСПРАВЛЕНО: Windows PowerShell
       run: |
         Write-Host "🔧 Проверяем наличие UE..." -ForegroundColor Cyan
-        $uePath = "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}"
         
-        if (Test-Path $uePath) {
-          Write-Host "✅ UE found at $uePath" -ForegroundColor Green
-        } else {
-          Write-Host "❌ UE not found at $uePath" -ForegroundColor Red
-          Write-Host "Доступные версии UE:" -ForegroundColor Yellow
-          Get-ChildItem "C:\Program Files\Epic Games\" -Directory | ForEach-Object { 
-            Write-Host "  - $($_.Name)" 
+        # Пробуем разные пути к UE
+        $uePaths = @(
+          "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}",
+          "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}",
+          "D:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}"
+        )
+        
+        $ueFound = $false
+        foreach ($path in $uePaths) {
+          if (Test-Path $path) {
+            Write-Host "✅ UE found at $path" -ForegroundColor Green
+            $ueFound = $true
+            break
+          }
+        }
+        
+        if (-not $ueFound) {
+          Write-Host "❌ UE not found!" -ForegroundColor Red
+          Write-Host "Checking available UE installations:" -ForegroundColor Yellow
+          
+          # Проверяем все возможные диски
+          $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -gt 0 }
+          foreach ($drive in $drives) {
+            $ueDir = "$($drive.Name):\Program Files\Epic Games"
+            if (Test-Path $ueDir) {
+              Write-Host "  Found UE on $($drive.Name): drive" -ForegroundColor Cyan
+              Get-ChildItem $ueDir -Directory | ForEach-Object { 
+                Write-Host "    - $($_.Name)" 
+              }
+            }
           }
           exit 1
         }
     
     - name: Validate Project Files
-      shell: pwsh  # ← PowerShell для Windows
+      shell: powershell
       run: |
         $projectFile = "${{ env.PROJECT_NAME }}.uproject"
         Write-Host "📁 Проверка проекта: $projectFile" -ForegroundColor Cyan
@@ -48,26 +70,25 @@ jobs:
           Write-Host "✅ Project file exists" -ForegroundColor Green
         } else {
           Write-Host "❌ Project file not found!" -ForegroundColor Red
-          Write-Host "Available .uproject files:" -ForegroundColor Yellow
-          Get-ChildItem -Filter "*.uproject" | ForEach-Object { 
-            Write-Host "  - $($_.Name)" 
-          }
+          Write-Host "Available files in repository:" -ForegroundColor Yellow
+          Get-ChildItem | Format-Table Name, Length, LastWriteTime
           exit 1
-        }
-        
-        # Проверка папок
-        $requiredDirs = @("Content", "Source", "Config")
-        foreach ($dir in $requiredDirs) {
-          if (Test-Path $dir) {
-            Write-Host "✅ Found $dir/" -ForegroundColor Green
-          }
         }
     
     - name: Generate Project Files
-      shell: cmd  # ← CMD для UBT
+      shell: cmd
       run: |
         echo "🛠️ Генерация project files..."
-        echo "UE Version: ${{ env.UE_VERSION }}"
         echo "Project: ${{ env.PROJECT_NAME }}.uproject"
         
-        "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\${{ env.PROJECT_NAME }}.uproject" -game -rocket -progress
+        rem Определяем путь к UE
+        if exist "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" (
+          set UBT_PATH="C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe"
+        ) else if exist "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" (
+          set UBT_PATH="F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe"
+        ) else (
+          echo "❌ UnrealBuildTool not found!"
+          exit 1
+        )
+        
+        %UBT_PATH% -projectfiles -project="%CD%\${{ env.PROJECT_NAME }}.uproject" -game -rocket -progress
