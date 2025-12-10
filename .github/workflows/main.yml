@@ -53,7 +53,7 @@ jobs:
             if (Test-Path $ueDir) {
               Write-Host "  Found UE on $($drive.Name): drive" -ForegroundColor Cyan
               Get-ChildItem $ueDir -Directory | ForEach-Object { 
-                Write-Host "    - $($_.Name)" 
+                Write-Host ('    - {0}' -f $_.Name)" 
               }
             }
           }
