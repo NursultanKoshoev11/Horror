@@ -24,7 +24,7 @@ jobs:
       - name: Generate Project Files
         shell: cmd
         run: |
-          cd Devops
+          cd PolygonHorrorMansion/Devops
           GenerateProjectFiles.bat
 
       - name: Build
