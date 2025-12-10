@@ -9,7 +9,6 @@ on:
 env:
   UE_VERSION: "5.5"
   PROJECT_NAME: "PolygonHorrorMansion"
-  PROJECT_FILE: "PolygonHorrorMansion.uproject"  # ← ИСПРАВЛЕНО: убрали ${{ }}
 
 jobs:
   validate-project:
@@ -23,35 +22,52 @@ jobs:
         lfs: true
     
     - name: Setup Unreal Engine
-      shell: bash
+      shell: pwsh  # ← ИСПРАВЛЕНО: используем PowerShell вместо bash
       run: |
-        echo "🔧 Проверяем наличие UE..."
-        if [ -d "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}" ]; then
-          echo "✅ UE found at C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
-        else
-          echo "❌ UE not found!"
+        Write-Host "🔧 Проверяем наличие UE..." -ForegroundColor Cyan
+        $uePath = "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}"
+        
+        if (Test-Path $uePath) {
+          Write-Host "✅ UE found at $uePath" -ForegroundColor Green
+        } else {
+          Write-Host "❌ UE not found at $uePath" -ForegroundColor Red
+          Write-Host "Доступные версии UE:" -ForegroundColor Yellow
+          Get-ChildItem "C:\Program Files\Epic Games\" -Directory | ForEach-Object { 
+            Write-Host "  - $($_.Name)" 
+          }
           exit 1
-        fi
+        }
     
     - name: Validate Project Files
-      shell: bash
+      shell: pwsh  # ← PowerShell для Windows
       run: |
-        echo "📁 Проверка структуры проекта..."
-        if [ ! -f "${{ env.PROJECT_FILE }}" ]; then
-          echo "❌ Project file not found!"
-          exit 1
-        fi
-        echo "✅ Project file exists"
+        $projectFile = "${{ env.PROJECT_NAME }}.uproject"
+        Write-Host "📁 Проверка проекта: $projectFile" -ForegroundColor Cyan
         
-        # Проверка основных папок
-        for dir in "Content" "Source" "Config"; do
-          if [ -d "$dir" ]; then
-            echo "✅ Found $dir/"
-          fi
-        done
+        if (Test-Path $projectFile) {
+          Write-Host "✅ Project file exists" -ForegroundColor Green
+        } else {
+          Write-Host "❌ Project file not found!" -ForegroundColor Red
+          Write-Host "Available .uproject files:" -ForegroundColor Yellow
+          Get-ChildItem -Filter "*.uproject" | ForEach-Object { 
+            Write-Host "  - $($_.Name)" 
+          }
+          exit 1
+        }
+        
+        # Проверка папок
+        $requiredDirs = @("Content", "Source", "Config")
+        foreach ($dir in $requiredDirs) {
+          if (Test-Path $dir) {
+            Write-Host "✅ Found $dir/" -ForegroundColor Green
+          }
+        }
     
     - name: Generate Project Files
-      shell: cmd
+      shell: cmd  # ← CMD для UBT
       run: |
         echo "🛠️ Генерация project files..."
-        "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\${{ env.PROJECT_FILE }}" -game -rocket -progress
+        echo "UE Version: ${{ env.UE_VERSION }}"
+        echo "Project: ${{ env.PROJECT_NAME }}.uproject"
+        
+        "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\${{ env.PROJECT_NAME }}.uproject" -game -rocket -progress
