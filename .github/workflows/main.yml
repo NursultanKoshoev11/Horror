@@ -1,1 +1,56 @@
+name: Unreal Engine CI
 
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  UE_VERSION: "5.5"
+  PROJECT_NAME: "YourProjectName"
+  PROJECT_FILE: "${{ env.PROJECT_NAME }}.uproject"
+
+jobs:
+  validate-project:
+    runs-on: self-hosted  # Используем ваш runner
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        lfs: true  # Важно для Unreal Engine!
+    
+    - name: Setup Unreal Engine
+      run: |
+        echo "🔧 Проверяем наличие UE..."
+        # Проверка пути к UE (настройте под ваш runner)
+        if [ -d "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}" ]; then
+          echo "UE found at C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
+        else
+          echo "❌ UE not found!"
+          exit 1
+        fi
+    
+    - name: Validate Project Files
+      run: |
+        echo "📁 Проверка структуры проекта..."
+        if [ ! -f "${{ env.PROJECT_FILE }}" ]; then
+          echo "❌ Project file not found!"
+          exit 1
+        fi
+        echo "✅ Project file exists"
+        
+        # Проверка основных папок
+        for dir in "Content" "Source" "Config"; do
+          if [ -d "$dir" ]; then
+            echo "✅ Found $dir/"
+          fi
+        done
+    
+    - name: Generate Project Files
+      shell: cmd
+      run: |
+        echo "🛠️ Генерация project files..."
+        "C:\Program Files\Epic Games\UE_%UE_VERSION%\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\%PROJECT_FILE%" -game -rocket -progress
