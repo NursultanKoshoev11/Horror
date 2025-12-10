@@ -50,7 +50,7 @@ jobs:
         }
 
         Write-Host ("✅ UE found at: {0}" -f $found) -ForegroundColor Green
-        echo "UE_PATH=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        Add-Content -Path $env:GITHUB_OUTPUT -Value ("UE_PATH=" + $found)
 
 
     # -----------------------------------------------------------
