@@ -15,26 +15,26 @@ jobs:
 
     steps:
 
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        lfs: true
-        submodules: recursive
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
 
-    - name: Generate Profect Files
-       shell: cmd
-       run: |
-       	cd Devops
-        GenerateProjectFiles.bat
+      - name: Generate Project Files
+        shell: cmd
+        run: |
+          cd Devops
+          GenerateProjectFiles.bat
 
-    - name: Build
-      shell: cmd
-      run: |
-        cd Devops
-	BuildProjectFiles.bat
+      - name: Build
+        shell: cmd
+        run: |
+          cd Devops
+          BuildProjectFiles.bat
 
-    - name: Upload Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: Build
-        path: BuildOutput/
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build
+          path: BuildOutput/
