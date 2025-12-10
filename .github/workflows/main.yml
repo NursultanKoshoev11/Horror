@@ -9,31 +9,32 @@ on:
 env:
   UE_VERSION: "5.5"
   PROJECT_NAME: "PolygonHorrorMansion"
-  PROJECT_FILE: "${{ env.PROJECT_NAME }}.uproject"
+  PROJECT_FILE: "PolygonHorrorMansion.uproject"  # ← ИСПРАВЛЕНО: убрали ${{ }}
 
 jobs:
   validate-project:
-    runs-on: self-hosted  # Используем ваш runner
+    runs-on: self-hosted
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
-        lfs: true  # Важно для Unreal Engine!
+        lfs: true
     
     - name: Setup Unreal Engine
+      shell: bash
       run: |
         echo "🔧 Проверяем наличие UE..."
-        # Проверка пути к UE (настройте под ваш runner)
         if [ -d "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}" ]; then
-          echo "UE found at C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
+          echo "✅ UE found at C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
         else
           echo "❌ UE not found!"
           exit 1
         fi
     
     - name: Validate Project Files
+      shell: bash
       run: |
         echo "📁 Проверка структуры проекта..."
         if [ ! -f "${{ env.PROJECT_FILE }}" ]; then
@@ -53,4 +54,4 @@ jobs:
       shell: cmd
       run: |
         echo "🛠️ Генерация project files..."
-        "C:\Program Files\Epic Games\UE_%UE_VERSION%\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\%PROJECT_FILE%" -game -rocket -progress
+        "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" -projectfiles -project="%CD%\${{ env.PROJECT_FILE }}" -game -rocket -progress
