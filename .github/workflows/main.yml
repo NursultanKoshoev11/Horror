@@ -35,7 +35,7 @@ jobs:
 
       - name: Notify Success
         if: success()
-        uses: appleboy/discord-action@v0.3.0
+        uses: appleboy/discord-action@v0.4.0
         with:
           webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
           webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
@@ -43,7 +43,7 @@ jobs:
 
       - name: Notify Failure
         if: failure()
-        uses: appleboy/discord-action@v0.3.0
+        uses: appleboy/discord-action@v0.4.0
         with:
           webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
           webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
