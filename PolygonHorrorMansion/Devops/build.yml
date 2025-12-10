@@ -1,0 +1,40 @@
+name: Unreal Engine Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  UE_VERSION: 5.5
+  PROJECT_NAME: PolygonHorrorMansion
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Generate Project Files
+        shell: cmd
+        run: |
+          cd Devops
+          GenerateProjectFiles.bat
+
+      - name: Build
+        shell: cmd
+        run: |
+          cd Devops
+          BuildProjectFiles.bat
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build
+          path: BuildOutput/
