@@ -24,30 +24,34 @@ jobs:
       - name: Generate Project Files
         shell: cmd
         run: |
-          cd PolygonHorrorMansion/Devops
+          cd PolygonHorrorMansion\Devops
           GenerateProjectFiles.bat
 
       - name: Build
         shell: cmd
         run: |
-          cd PolygonHorrorMansion/Devops
+          cd PolygonHorrorMansion\Devops
           BuildProjectFiles.bat
 
       - name: Notify Success
         if: success()
-        uses: appleboy/discord-action@v1.2.0
-        with:
-          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-          message: "✅ Build succeeded for ${{ github.repository }}! Логи: ${{ github.run_id }}"
-      
+        shell: powershell
+        run: |
+          $webhook = "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          $body = @{
+            content = "✅ Build succeeded for $($env:GITHUB_REPOSITORY)! Логи: $($env:GITHUB_RUN_ID)"
+          } | ConvertTo-Json
+          Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType "application/json"
+
       - name: Notify Failure
         if: failure()
-        uses: appleboy/discord-action@v1.2.0
-        with:
-          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-          message: "❌ Build failed for ${{ github.repository }}! Логи: ${{ github.run_id }}"
+        shell: powershell
+        run: |
+          $webhook = "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          $body = @{
+            content = "❌ Build failed for $($env:GITHUB_REPOSITORY)! Логи: $($env:GITHUB_RUN_ID)"
+          } | ConvertTo-Json
+          Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType "application/json"
 
       - name: Upload Build
         uses: actions/upload-artifact@v4
