@@ -30,7 +30,7 @@ jobs:
       - name: Build
         shell: cmd
         run: |
-          cd Devops
+          cd PolygonHorrorMansion/Devops
           BuildProjectFiles.bat
 
       - name: Upload Build
