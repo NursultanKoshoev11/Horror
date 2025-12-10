@@ -33,6 +33,22 @@ jobs:
           cd PolygonHorrorMansion/Devops
           BuildProjectFiles.bat
 
+      - name: Notify Success
+        if: success()
+        uses: appleboy/discord-action@v0.3.0
+        with:
+          webhook_id: ${{ secrets.1448295351739224094 }}
+          webhook_token: ${{ secrets.LDVJ4y1aKOyeJOlcRdBERiLQb-WOXnPprlN5qImvf26CgOiYQyQYUDckaz9jJwhW-GFF }}
+          message: "✅ Build succeeded for ${{ github.repository }}! Логи: ${{ github.run_id }}"
+
+      - name: Notify Failure
+        if: failure()
+        uses: appleboy/discord-action@v0.3.0
+        with:
+          webhook_id: ${{ secrets.1448295351739224094 }}
+          webhook_token: ${{ secrets.LDVJ4y1aKOyeJOlcRdBERiLQb-WOXnPprlN5qImvf26CgOiYQyQYUDckaz9jJwhW-GFF }}
+          message: "❌ Build failed for ${{ github.repository }}! Логи: ${{ github.run_id }}"
+
       - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
