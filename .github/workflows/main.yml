@@ -1,94 +1,108 @@
-name: Unreal Engine CI
+name: Unreal Engine Build
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
 
 env:
   UE_VERSION: "5.5"
   PROJECT_NAME: "PolygonHorrorMansion"
 
 jobs:
-  validate-project:
+  build-project:
     runs-on: self-hosted
-    
+
     steps:
-    - name: Checkout repository
+
+    - name: Checkout repo
       uses: actions/checkout@v4
       with:
-        submodules: recursive
         lfs: true
-    
-    - name: Setup Unreal Engine
-      shell: powershell  # ← ИСПРАВЛЕНО: Windows PowerShell
+        submodules: recursive
+
+    # -----------------------------------------------------------
+    # FIND UNREAL ENGINE INSTALLATION
+    # -----------------------------------------------------------
+    - name: Locate Unreal Engine
+      id: find_ue
+      shell: powershell
       run: |
-        Write-Host "🔧 Проверяем наличие UE..." -ForegroundColor Cyan
-        
-        # Пробуем разные пути к UE
-        $uePaths = @(
+        Write-Host "🔍 Searching for Unreal Engine..." -ForegroundColor Cyan
+
+        $possible = @(
           "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}",
-          "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}",
-          "D:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}"
+          "D:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}",
+          "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}"
         )
-        
-        $ueFound = $false
-        foreach ($path in $uePaths) {
-          if (Test-Path $path) {
-            Write-Host "✅ UE found at $path" -ForegroundColor Green
-            $ueFound = $true
+
+        $found = $null
+        foreach ($p in $possible) {
+          if (Test-Path $p) {
+            $found = $p
             break
           }
         }
-        
-        if (-not $ueFound) {
-          Write-Host "❌ UE not found!" -ForegroundColor Red
-          Write-Host "Checking available UE installations:" -ForegroundColor Yellow
-          
-          # Проверяем все возможные диски
-          $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -gt 0 }
-          foreach ($drive in $drives) {
-            $ueDir = "$($drive.Name):\Program Files\Epic Games"
-            if (Test-Path $ueDir) {
-              Write-Host "  Found UE on $($drive.Name): drive" -ForegroundColor Cyan
-              Get-ChildItem $ueDir -Directory | ForEach-Object { 
-                Write-Host ('    - {0}' -f $_.Name)" 
-              }
-            }
-          }
+
+        if ($found -eq $null) {
+          Write-Host "❌ UE NOT FOUND!" -ForegroundColor Red
           exit 1
         }
-    
-    - name: Validate Project Files
+
+        Write-Host ("✅ UE found at: {0}" -f $found) -ForegroundColor Green
+        echo "UE_PATH=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+
+    # -----------------------------------------------------------
+    # VALIDATE .uproject
+    # -----------------------------------------------------------
+    - name: Validate Project
       shell: powershell
       run: |
-        $projectFile = "${{ env.PROJECT_NAME }}.uproject"
-        Write-Host "📁 Проверка проекта: $projectFile" -ForegroundColor Cyan
-        
-        if (Test-Path $projectFile) {
-          Write-Host "✅ Project file exists" -ForegroundColor Green
-        } else {
-          Write-Host "❌ Project file not found!" -ForegroundColor Red
-          Write-Host "Available files in repository:" -ForegroundColor Yellow
-          Get-ChildItem | Format-Table Name, Length, LastWriteTime
+        $proj = "${{ env.PROJECT_NAME }}.uproject"
+        if (-not (Test-Path $proj)) {
+          Write-Host "❌ Project file not found: $proj" -ForegroundColor Red
+          Get-ChildItem
           exit 1
         }
-    
-    - name: Generate Project Files
+        Write-Host "📁 Found project file: $proj" -ForegroundColor Green
+
+
+    # -----------------------------------------------------------
+    # GENERATE PROJECT FILES (.sln)
+    # -----------------------------------------------------------
+    - name: Generate Solution
       shell: cmd
       run: |
-        echo "🛠️ Генерация project files..."
-        echo "Project: ${{ env.PROJECT_NAME }}.uproject"
-        
-        rem Определяем путь к UE
-        if exist "C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" (
-          set UBT_PATH="C:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe"
-        ) else if exist "F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" (
-          set UBT_PATH="F:\Program Files\Epic Games\UE_${{ env.UE_VERSION }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe"
-        ) else (
-          echo "❌ UnrealBuildTool not found!"
-          exit 1
-        )
-        
-        %UBT_PATH% -projectfiles -project="%CD%\${{ env.PROJECT_NAME }}.uproject" -game -rocket -progress
+        echo "🛠️ Generating project files..."
+        "%UE_PATH%\Engine\Build\BatchFiles\GenerateProjectFiles.bat" -project="%CD%\${{ env.PROJECT_NAME }}.uproject" -game
+
+
+    # -----------------------------------------------------------
+    # BUILD + COOK + PAK + ARCHIVE
+    # -----------------------------------------------------------
+    - name: Build Shipping
+      shell: cmd
+      run: |
+        echo "🚀 Building Shipping..."
+        "%UE_PATH%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
+          -project="%CD%\${{ env.PROJECT_NAME }}.uproject" ^
+          -noP4 ^
+          -build ^
+          -cook ^
+          -pak ^
+          -stage ^
+          -archive ^
+          -clientconfig=Shipping ^
+          -platform=Win64 ^
+          -archivedirectory="%CD%\BuildOutput"
+
+
+    # -----------------------------------------------------------
+    # SAVE ARTIFACTS
+    # -----------------------------------------------------------
+    - name: Upload Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: Game-Win64
+        path: BuildOutput/
