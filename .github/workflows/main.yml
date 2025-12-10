@@ -2,7 +2,7 @@ name: Unreal Engine Build
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
 
 env:
@@ -21,45 +21,17 @@ jobs:
         lfs: true
         submodules: recursive
 
-    - name: Locate Unreal Engine
-      id: ue
-      shell: powershell
-      run: |
-        Write-Host Searching UE...
+    - name: Generate Profect Files
+       shell: cmd
+       run: |
+       	cd Devops
+        GenerateProjectFiles.bat
 
-        $v = $env:UE_VERSION
-
-    - name: Validate project
-      shell: powershell
-      run: |
-        $proj = $env:PROJECT_NAME + '.uproject'
-
-        if (!(Test-Path $proj)) {
-          Write-Host Project file not found: $proj
-          exit 1
-        }
-
-        Write-Host Project OK: $proj
-
-    - name: Generate Project Files
+    - name: Build
       shell: cmd
       run: |
-        "F:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\GenerateProjectFiles.bat" -project="%CD%\%PROJECT_NAME%.uproject" -game
-
-    - name: Build Shipping
-      shell: cmd
-      run: |
-        "F:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
-          -project="%CD%\%PROJECT_NAME%.uproject" ^
-          -noP4 ^
-          -build ^
-          -cook ^
-          -pak ^
-          -stage ^
-          -archive ^
-          -clientconfig=Shipping ^
-          -platform=Win64 ^
-          -archivedirectory="%CD%\BuildOutput"
+        cd Devops
+	BuildProjectFiles.bat
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
